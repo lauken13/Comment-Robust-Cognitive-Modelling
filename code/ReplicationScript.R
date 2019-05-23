@@ -137,12 +137,12 @@ summary_pumps_within <- prior_2 %>%
          mean_cond_comp=mean_cond[Alc=="Sober"]-mean_cond)
 
 
-ggplot(summary_pumps_within[summary_pumps_within$Alc!="Sober",], aes(x=as.factor(prob_burst),y=mean_cond_comp,fill=Alc))+ geom_violin(alpha=.9)+
+ggplot(summary_pumps_within[summary_pumps_within$Alc!="Sober",], aes(x=as.factor(prob_burst/100),y=mean_cond_comp,fill=Alc))+ geom_violin(alpha=.9)+
   theme_bw() +ylab("Difference in mean")+xlab("Probability of balloon popping")+
   scale_fill_manual(values=c("#c7e9b4","#41b6c4","#225ea8"))+
   theme(legend.position = "bottom")
 ggsave('images/hier_difmean_ppcadj.png',width=15,height=12,units="cm")
-ggplot(summary_pumps_within[summary_pumps_within$Alc!="Sober",], aes(x=as.factor(prob_burst),y=sd_cond_comp,fill=Alc))+ geom_violin(alpha=.9)+
+ggplot(summary_pumps_within[summary_pumps_within$Alc!="Sober",], aes(x=as.factor(prob_burst/100),y=sd_cond_comp,fill=Alc))+ geom_violin(alpha=.9)+
   theme_bw() +ylab("Difference in sd")+xlab("Probability of balloon popping")+
   scale_fill_manual(values=c("#c7e9b4","#41b6c4","#225ea8"))+
   theme(legend.position = "none")
