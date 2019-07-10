@@ -2,7 +2,9 @@
 # Prior predictive check for non-hierachical model #####################
 ########################################################################
 #Simulate the number of pumps for different probs of popping
+library(dplyr)
 set.seed(9458)
+u=10
 prior_1 <- data.frame()
 for (p in seq(.05,.5,.05)){
   print(p)
@@ -130,7 +132,7 @@ saveRDS(prior_2,"results/ppc_h_ppcadj.RDS")
 
 summary_pumps_within <- prior_2 %>%
   group_by(ps,prob_burst,Alc,upper)%>%
-  mutate(sd_cond=sd(npump),mean_cond=mean(npump))%>%
+  summarise(sd_cond=sd(npump),mean_cond=mean(npump))%>%
   ungroup()%>%
   group_by(ps,prob_burst,upper)%>%
   mutate(sd_cond_comp=sd_cond[Alc=="Sober"]-sd_cond,
@@ -189,7 +191,7 @@ saveRDS(prior_2b,"results/ppc_h_ppc.RDS")
 
 summary_pumps_within <- prior_2b %>%
   group_by(ps,prob_burst,Alc,upper)%>%
-  mutate(sd_cond=sd(npump),mean_cond=mean(npump))%>%
+  summarise(sd_cond=sd(npump),mean_cond=mean(npump))%>%
   ungroup()%>%
   group_by(ps,prob_burst,upper)%>%
   mutate(sd_cond_comp=sd_cond[Alc=="Sober"]-sd_cond,
@@ -214,11 +216,11 @@ ggsave('images/hier_difvar_ppc.png',width=15,height=12,units="cm")
 ntrials <- 90  # Number of trials for the BART
 
 Data <- list(
-  matrix(data=as.numeric(as.matrix(read.table("Explosive BART/data/GeorgeSober.txt"))[-1, ]),
+  matrix(data=as.numeric(as.matrix(read.table("data/GeorgeSober.txt"))[-1, ]),
          ntrials, 8),
-  matrix(data=as.numeric(as.matrix(read.table("Explosive BART/data/GeorgeTipsy.txt"))[-1, ]),
+  matrix(data=as.numeric(as.matrix(read.table("data/GeorgeTipsy.txt"))[-1, ]),
          ntrials, 8),
-  matrix(data=as.numeric(as.matrix(read.table("Explosive BART/data/GeorgeDrunk.txt"))[-1, ]),
+  matrix(data=as.numeric(as.matrix(read.table("data/GeorgeDrunk.txt"))[-1, ]),
          ntrials, 8)
 )
 
@@ -245,8 +247,8 @@ library(rstan)
 library(bridgesampling)
 library(loo)
 df_bf <- expand.grid(u = 1:10, log_bf =0,loo10=0,loo_sd=0, k=1:10,time_1=-1,warm_1=-1,time_0=-1,warm_0=-1)
-hier_model <- stan_model(file= "Explosive BART/code/BART_hierachical.stan")
-non_hier_model <- stan_model(file= "Explosive BART/code/BART_not_hierachical.stan")
+hier_model <- stan_model(file= "code/BART_hierachical.stan")
+non_hier_model <- stan_model(file= "code/BART_not_hierachical.stan")
 for (reps in 1:nrow(df_bf)){
   print(reps)
   dat <- list(nconds=nconds, ntrials=ntrials, p=p, options=options, d=d,
@@ -288,22 +290,22 @@ for (reps in 1:nrow(df_bf)){
 ggplot(df_bf, aes(x=u, y=-loo10, group = k))+
   geom_ribbon(data = df_bf,mapping = aes(ymin = -loo10 - loo_sd, ymax = -loo10 + loo_sd,group = k), fill = "navy",alpha=.2)+
   geom_line()+theme_bw() + ylab("Preference for H1 by LOO")+xlab("Upper bound of uniform")
-ggsave("Explosive BART/Images/Gdat_LOO.png",width=15, height=12,units="cm")
+ggsave("images/Gdat_LOO.png",width=15, height=12,units="cm")
 ggplot(df_bf, aes(x=u, y=loo_sd, group = k))+xlab("Upper bound of uniform")+
   geom_line()+theme_bw() + ylab("Variance of LOO")+ggtitle("George data")
-ggsave("Explosive BART/Images/Gdat_LOO_var.png",width=15, height=12,units="cm")
+ggsave("images/Gdat_LOO_var.png",width=15, height=12,units="cm")
 ggplot(df_bf, aes(x=u, y=log_bf, group = k))+xlab("Upper bound of uniform")+
   geom_line()+theme_bw() + ylab("BF in favour of H1")
-ggsave("Explosive BART/Images/Gdat_BF.png",width=15, height=12,units="cm")
+ggsave("images/Gdat_BF.png",width=15, height=12,units="cm")
 
 ggplot()+
   geom_line(df_bf,mapping=aes(x=u, y=time_1, group = k),colour="red")+
   geom_line(df_bf,mapping=aes(x=u, y=time_0, group = k),colour="navy blue")+
   theme_bw() + ylab("Time to run")+ggtitle("George data")
 
-ggsave("Explosive BART/Images/Gdat_runtime.png")
+ggsave("images/Gdat_runtime.png")
 
-saveRDS(df_bf,'Explosive BART/Results/BF_Georgedata.RDS')
+saveRDS(df_bf,'results/BF_Georgedata.RDS')
 
 #################################################################################################################
 #  What if we permuted the data set?                                                                        ####
@@ -315,17 +317,17 @@ p_balloon <- as.numeric(as.factor(Data[[1]][,4]/100))
 ntrials <- 90  # Number of trials for the BART
 
 df_bf_null <- expand.grid(u = 1:10, log_bf =0,loo10=0,loo_sd=0, k=1:10,time_1=-1,warm_1=-1,time_0=-1,warm_0=-1)
-hier_model <- stan_model(file= "Explosive BART/code/BART_hierachical.stan")
-non_hier_model <- stan_model(file= "Explosive BART/code/BART_not_hierachical.stan")
+hier_model <- stan_model(file= "code/BART_hierachical.stan")
+non_hier_model <- stan_model(file= "code/BART_not_hierachical.stan")
 for (reps in 1:nrow(df_bf_null)){
   print(reps)
   if(df_bf_null$u[reps] == 1){
     Data <- list(
-      matrix(data=as.numeric(as.matrix(read.table("Explosive BART/data/GeorgeSober.txt"))[-1, ]),
+      matrix(data=as.numeric(as.matrix(read.table("data/GeorgeSober.txt"))[-1, ]),
              ntrials, 8),
-      matrix(data=as.numeric(as.matrix(read.table("Explosive BART/data/GeorgeTipsy.txt"))[-1, ]),
+      matrix(data=as.numeric(as.matrix(read.table("data/GeorgeTipsy.txt"))[-1, ]),
              ntrials, 8),
-      matrix(data=as.numeric(as.matrix(read.table("Explosive BART/data/GeorgeDrunk.txt"))[-1, ]),
+      matrix(data=as.numeric(as.matrix(read.table("data/GeorgeDrunk.txt"))[-1, ]),
              ntrials, 8)
     )
     #randomly permute the data:
@@ -394,22 +396,22 @@ for (reps in 1:nrow(df_bf_null)){
 ggplot(df_bf_null, aes(x=u, y=-loo10, group = k))+
   geom_ribbon(data = df_bf_null,mapping = aes(ymin = -loo10 - loo_sd, ymax = -loo10 + loo_sd,group = k), fill = "navy",alpha=.2)+
   geom_line()+theme_bw() + ylab("Preference for H1 by LOO")+xlab("Upper bound of uniform")
-ggsave("Explosive BART/Images/Permuted_Gdat_LOO.png",width=15, height=12,units="cm")
+ggsave("images/Permuted_Gdat_LOO.png",width=15, height=12,units="cm")
 ggplot(df_bf_null, aes(x=u, y=loo_sd, group = k))+
   geom_line()+theme_bw() + ylab("Variance of LOO")+xlab("Upper bound of uniform")
-ggsave("Explosive BART/Images/Permuted_Gdat_LOO_var.png",width=15, height=12,units="cm")
+ggsave("images/Permuted_Gdat_LOO_var.png",width=15, height=12,units="cm")
 ggplot(df_bf_null, aes(x=u, y=log_bf, group = k))+
   geom_line()+theme_bw() + ylab("BF in favour of H1")+xlab("Upper bound of uniform")
-ggsave("Explosive BART/Images/Perumted_Gdat_BF.png",width=15, height=12,units="cm")
+ggsave("images/Perumted_Gdat_BF.png",width=15, height=12,units="cm")
 
 ggplot()+
   geom_line(df_bf_null,mapping=aes(x=u, y=time_1, group = k),colour="red")+
   geom_line(df_bf_null,mapping=aes(x=u, y=time_0, group = k),colour="navy blue")+
   theme_bw() + ylab("Time to run")+ggtitle("Permuted George data")
 
-ggsave("Explosive BART/Images/Permuted_Gdat_runtime.png")
+ggsave("images/Permuted_Gdat_runtime.png")
 
-saveRDS(df_bf_null,'Explosive BART/Results/BF_GeorgedataPermute.RDS')
+saveRDS(df_bf_null,'results/BF_GeorgedataPermute.RDS')
 
 
 ################################################################################
